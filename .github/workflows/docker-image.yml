@@ -35,15 +35,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. 메타데이터(태그/라벨) 추출
+# 3. 메타데이터 추출 (latest 태그 설정 강화)
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
-            type=sha
+            # 메인 브랜치 푸시 시 latest 태그 부여
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            # Git 커밋 SHA 버전 (추적용)
+            type=sha,format=short
+            # 태그(v1.0.0 등) 푸시 시 해당 버전 부여
+            type=semver,pattern={{version}}
 
       # 4. 빌드 및 푸시 (파일 경로 지정)
       - name: Build and push Docker image
