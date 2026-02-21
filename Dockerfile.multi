@@ -1,5 +1,5 @@
 # 1단계: Nuxt 빌드 (Node.js)
-FROM node:18-alpine AS node-builder
+FROM --platform=$BUILDPLATFORM node:18-alpine AS node-builder
 ENV NODE_OPTIONS=--openssl-legacy-provider
 WORKDIR /torrssen2/nuxt
 COPY . /torrssen2
