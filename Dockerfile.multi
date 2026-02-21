@@ -1,0 +1,24 @@
+# 1단계: Nuxt 빌드 (Node.js)
+FROM node:18-alpine AS node-builder
+ENV NODE_OPTIONS=--openssl-legacy-provider
+WORKDIR /torrssen2/nuxt
+COPY . /torrssen2
+RUN yarn && yarn build --spa
+RUN mkdir -p ../src/main/resources/static && \
+    cp -R dist/* ../src/main/resources/static
+
+# 2단계: Gradle 빌드 (Java 8)
+FROM gradle:7.6-jdk8 AS gradle-builder
+WORKDIR /torrssen2
+COPY --from=node-builder /torrssen2 .
+# gradlew가 있다면 ./gradlew bootJar 권장
+RUN gradle bootJar --no-daemon
+
+# 3단계: 최종 실행 이미지 (JRE 8)
+# eclipse-temurin은 amd64, arm64 등 다양한 아키텍처를 공식 지원합니다.
+FROM eclipse-temurin:8-jre-alpine
+WORKDIR /app
+COPY --from=gradle-builder /torrssen2/build/libs/torrssen2-*.jar torrssen2.jar
+VOLUME [ "/root/data" ]
+EXPOSE 8080
+CMD [ "java", "-jar", "torrssen2.jar" ]
