@@ -2,9 +2,8 @@ name: Build and Push Multi-Platform Docker Image
 
 on:
   push:
-    branches: [ "main" ]  # 메인 브랜치에 푸시될 때 실행
-    tags: [ 'v*.*.*' ]    # 버전을 태그(예: v1.0.0)로 매길 때 실행
-  workflow_dispatch:      # 수동 실행 버튼 활성화
+    branches: [ "main" ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -21,15 +20,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. QEMU 설정 (멀티 아키텍처 빌드를 위한 에뮬레이터)
+      # 1. 멀티 아키텍처 빌드를 위한 QEMU 및 Buildx 설정
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # 2. Docker Buildx 설정 (멀티 플랫폼 빌드 핵심 도구)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3. GitHub Container Registry 로그인
+      # 2. GitHub Container Registry 로그인
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v3
         with:
@@ -37,27 +35,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4. 이미지 태그 추출 (latest 및 버전 정보)
+      # 3. 메타데이터(태그/라벨) 추출
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=sha,format=long
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest
+            type=sha
 
-      # 5. 빌드 및 푸시 (AMD64 & ARM64)
+      # 4. 빌드 및 푸시 (파일 경로 지정)
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile.multi  # 👈 여기서 파일 이름을 직접 지정합니다.
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ id.meta.outputs.tags }}
-          labels: ${{ id.meta.outputs.labels }}
-          # 빌드 속도 향상을 위한 캐시 활용
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
