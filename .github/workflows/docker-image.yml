@@ -42,12 +42,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # 메인 브랜치 푸시 시 latest 태그 부여
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            # Git 커밋 SHA 버전 (추적용)
-            type=sha,format=short
-            # 태그(v1.0.0 등) 푸시 시 해당 버전 부여
-            type=semver,pattern={{version}}
+            ghcr.io/${{ github.repository }}:latest
 
       # 4. 빌드 및 푸시 (파일 경로 지정)
       - name: Build and push Docker image
